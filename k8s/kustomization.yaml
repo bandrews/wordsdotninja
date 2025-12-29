@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: wordsninja
+
+resources:
+  - namespace.yaml
+  - api.yaml
+  - frontend.yaml
+  - ingress.yaml
+  # Uncomment to deploy discord bot:
+  # - discord-bot.yaml
+
+# Docker Hub images
+images:
+  - name: wordsninja/api
+    newName: andrewsbw/wordsninja-api
+    newTag: latest
+  - name: wordsninja/frontend
+    newName: andrewsbw/wordsninja-frontend
+    newTag: latest
+  - name: wordsninja/discord-bot
+    newName: andrewsbw/wordsninja-discord-bot
+    newTag: latest

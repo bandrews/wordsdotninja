@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: discord-bot-token
+  namespace: wordsninja
+type: Opaque
+stringData:
+  DISCORD_BOT_TOKEN: "your-discord-bot-token-here"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discord-bot
+  namespace: wordsninja
+  labels:
+    app: discord-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discord-bot
+  template:
+    metadata:
+      labels:
+        app: discord-bot
+    spec:
+      containers:
+        - name: discord-bot
+          image: wordsninja/discord-bot:latest
+          env:
+            - name: NUTRIMATIC_API_URL
+              value: http://api:8000
+            - name: DEFAULT_DICTIONARY
+              value: "12dicts"
+            - name: MAX_RESULTS
+              value: "25"
+            - name: DISCORD_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: discord-bot-token
+                  key: DISCORD_BOT_TOKEN
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"

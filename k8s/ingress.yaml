@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wordsninja
+  namespace: wordsninja
+  annotations:
+    # K3s uses Traefik by default
+    kubernetes.io/ingress.class: traefik
+    # Enable gzip compression
+    traefik.ingress.kubernetes.io/router.middlewares: default-compress@kubernetescrd
+spec:
+  rules:
+    - host: words.ninja
+      http:
+        paths:
+          # API routes
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8000
+          # Health check for API
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8000
+          # Frontend (catch-all)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

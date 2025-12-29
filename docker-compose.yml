@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # Nutrimatic tools image (for building indexes or running standalone)
+  nutrimatic:
+    build:
+      context: ./nutrimatic
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/data
+    profiles:
+      - tools  # Only build when explicitly requested
+
+  # Backend API service (self-contained with binaries and indexes)
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    environment:
+      - NUTRIMATIC_FIND_EXPR=/usr/local/bin/find-expr
+      - NUTRIMATIC_MAX_COMPUTATION=1000000
+      - NUTRIMATIC_CPU_LIMIT=30
+      - NUTRIMATIC_MEMORY_LIMIT=2147483648
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - nutrimatic
+
+  # Frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - nutrimatic
+
+  # Unified reverse proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 2
+      start_period: 5s
+    networks:
+      - nutrimatic
+
+  # Discord Bot service (optional)
+  discord-bot:
+    build: ./discord-bot
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - NUTRIMATIC_API_URL=http://api:8000
+      - DEFAULT_DICTIONARY=12dicts
+      - MAX_RESULTS=25
+    env_file:
+      - ./discord-bot/.env
+    restart: unless-stopped
+    networks:
+      - nutrimatic
+    profiles:
+      - discord
+
+  # Development frontend with hot reload
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./frontend/src:/app/src:ro
+      - ./frontend/public:/app/public:ro
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - REACT_APP_API_URL=http://localhost/api
+    depends_on:
+      - nginx
+    profiles:
+      - dev
+    networks:
+      - nutrimatic
+
+networks:
+  nutrimatic:
+    driver: bridge
