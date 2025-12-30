@@ -55,10 +55,35 @@ const theme = createTheme({
   },
 });
 
+// Helper to check if URL has a search query
+const urlHasQuery = () => {
+  const params = new URLSearchParams(window.location.search);
+  const q = params.get('q');
+  return q && q.trim() !== '';
+};
+
 function App() {
   const [quickRefOpen, setQuickRefOpen] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  // Initialize hasSearched from URL - this is the source of truth
+  const [hasSearched, setHasSearched] = useState(urlHasQuery);
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Dictionary state shared between Header and SearchInterface
+  const [dictionaryState, setDictionaryState] = useState({
+    dictionaries: [],
+    selectedDictionary: 'wikipedia',
+    dictionariesLoading: true
+  });
+
+  // Listen for browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      // Derive view state from URL
+      setHasSearched(urlHasQuery());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Show quick reference on first visit for desktop users
   useEffect(() => {
@@ -75,6 +100,16 @@ function App() {
 
   const handleQuickRefToggle = () => {
     setQuickRefOpen(!quickRefOpen);
+  };
+
+  // Called by SearchInterface to report its dictionary state
+  const handleDictionaryStateChange = (state) => {
+    setDictionaryState(state);
+  };
+
+  // Called by Header when user changes dictionary on mobile
+  const handleHeaderDictionaryChange = (newDictionary) => {
+    setDictionaryState(prev => ({ ...prev, selectedDictionary: newDictionary }));
   };
 
   // Initial landing page layout
@@ -133,17 +168,30 @@ function App() {
             </Box>
             <Box>
               Powered by{' '}
-              <a 
-                href="https://github.com/egnor/nutrimatic" 
-                target="_blank" 
+              <a
+                href="https://github.com/egnor/nutrimatic"
+                target="_blank"
                 rel="noopener noreferrer"
-                style={{ 
-                  color: 'inherit', 
+                style={{
+                  color: 'inherit',
                   textDecoration: 'underline',
                   textDecorationColor: 'rgba(0,0,0,0.3)'
                 }}
               >
                 Nutrimatic
+              </a>
+              {' · '}
+              <a
+                href="https://github.com/bandrews/wordsdotninja"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: 'inherit',
+                  textDecoration: 'underline',
+                  textDecorationColor: 'rgba(0,0,0,0.3)'
+                }}
+              >
+                GitHub
               </a>
             </Box>
           </Box>
@@ -157,7 +205,13 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Header onQuickRefClick={handleQuickRefToggle} />
+        <Header
+          onQuickRefClick={handleQuickRefToggle}
+          dictionaries={dictionaryState.dictionaries}
+          selectedDictionary={dictionaryState.selectedDictionary}
+          onDictionaryChange={handleHeaderDictionaryChange}
+          dictionariesLoading={dictionaryState.dictionariesLoading}
+        />
         
         <Container
           maxWidth="xl"
@@ -176,9 +230,11 @@ function App() {
               minWidth: 0,
             }}
           >
-            <SearchInterface 
+            <SearchInterface
               onSearchPerformed={handleSearchPerformed}
               isLandingPage={false}
+              onDictionaryStateChange={handleDictionaryStateChange}
+              externalDictionary={dictionaryState.selectedDictionary}
             />
           </Box>
 

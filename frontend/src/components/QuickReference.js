@@ -192,14 +192,14 @@ function QuickReference({ open, onClose, isMobile, isLandingPage }) {
     </Box>
   );
 
-  // Landing page version - always visible on desktop
+  // Landing page version - always visible (scrollable on mobile)
   if (isLandingPage) {
     return (
-      <Box sx={{ 
-        width: { xs: '100%', md: '100%' },
-        display: { xs: open ? 'block' : 'none', md: 'block' }
+      <Box sx={{
+        width: '100%',
+        display: 'block'
       }}>
-        <Paper elevation={1} sx={{ height: 'fit-content', maxHeight: '600px' }}>
+        <Paper elevation={1} sx={{ height: 'fit-content', maxHeight: { xs: 'none', md: '600px' } }}>
           {quickRefContent}
         </Paper>
       </Box>

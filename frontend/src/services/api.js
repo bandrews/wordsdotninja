@@ -28,19 +28,32 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('API Response Error:', error);
-    
+
+    // Network error - backend unreachable
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      const networkError = new Error('Unable to connect to the server. Please check if the backend is running.');
+      networkError.isNetworkError = true;
+      throw networkError;
+    }
+
     if (error.code === 'ECONNABORTED') {
       throw new Error('Request timed out. The pattern might be too complex.');
     }
-    
+
     if (error.response?.status >= 500) {
       throw new Error('Server error. Please try again later.');
     }
-    
+
     if (error.response?.status === 404) {
       throw new Error('API endpoint not found. Please check your configuration.');
     }
-    
+
+    if (error.response?.status === 502 || error.response?.status === 503 || error.response?.status === 504) {
+      const gatewayError = new Error('Backend service is unavailable. Please try again later.');
+      gatewayError.isNetworkError = true;
+      throw gatewayError;
+    }
+
     throw error;
   }
 );

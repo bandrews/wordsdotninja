@@ -18,6 +18,8 @@ import {
   ContentCopy as CopyIcon,
   Download as DownloadIcon,
   MoreVert as MoreIcon,
+  Link as LinkIcon,
+  TableChart as TableIcon,
 } from '@mui/icons-material';
 import InfiniteScroll from 'react-infinite-scroll-component';
 
@@ -163,7 +165,7 @@ function SearchResults({ results, hasMore, loading, onLoadMore, searchStats, sel
   };
 
   // Export functions
-  const copyAllToClipboard = async () => {
+  const copyAllAsText = async () => {
     try {
       const text = results.map(result => result.text).join('\n');
       await navigator.clipboard.writeText(text);
@@ -176,6 +178,49 @@ function SearchResults({ results, hasMore, loading, onLoadMore, searchStats, sel
       setSnackbar({
         open: true,
         message: 'Failed to copy to clipboard',
+        severity: 'error'
+      });
+    }
+    setExportMenuAnchor(null);
+  };
+
+  const copyAllAsCSV = async () => {
+    try {
+      const csvContent = [
+        'Text,Score,Category',
+        ...results.map(result => {
+          const category = getFrequencyCategory(result.score);
+          return `"${result.text.replace(/"/g, '""')}",${result.score},${category.label}`;
+        })
+      ].join('\n');
+      await navigator.clipboard.writeText(csvContent);
+      setSnackbar({
+        open: true,
+        message: `Copied ${results.length} results with scores to clipboard`,
+        severity: 'success'
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Failed to copy to clipboard',
+        severity: 'error'
+      });
+    }
+    setExportMenuAnchor(null);
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setSnackbar({
+        open: true,
+        message: 'Link copied to clipboard',
+        severity: 'success'
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Failed to copy link',
         severity: 'error'
       });
     }
@@ -288,11 +333,23 @@ function SearchResults({ results, hasMore, loading, onLoadMore, searchStats, sel
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        <MenuItem onClick={copyAllToClipboard}>
+        <MenuItem onClick={copyLink}>
+          <ListItemIcon>
+            <LinkIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Copy link to results" />
+        </MenuItem>
+        <MenuItem onClick={copyAllAsText}>
           <ListItemIcon>
             <CopyIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Copy all" />
+          <ListItemText primary="Copy all as text" />
+        </MenuItem>
+        <MenuItem onClick={copyAllAsCSV}>
+          <ListItemIcon>
+            <TableIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Copy all with scores (CSV)" />
         </MenuItem>
         <MenuItem onClick={downloadAsFile}>
           <ListItemIcon>
