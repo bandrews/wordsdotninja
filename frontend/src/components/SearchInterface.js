@@ -39,16 +39,16 @@ function SearchInterface({ onSearchPerformed, isLandingPage, onDictionaryStateCh
   const [hasMore, setHasMore] = useState(false);
   const [searchStats, setSearchStats] = useState(null);
 
-  // Report dictionary state to parent (for Header on mobile)
+  // Report dictionary list and loading state to parent (for Header on mobile)
+  // Only report dictionaries and loading - NOT selectedDictionary to avoid loops
   useEffect(() => {
     if (onDictionaryStateChange) {
       onDictionaryStateChange({
         dictionaries,
-        selectedDictionary,
         dictionariesLoading
       });
     }
-  }, [dictionaries, selectedDictionary, dictionariesLoading, onDictionaryStateChange]);
+  }, [dictionaries, dictionariesLoading, onDictionaryStateChange]);
 
   // React to external dictionary changes (from Header on mobile)
   useEffect(() => {
@@ -338,37 +338,50 @@ function SearchInterface({ onSearchPerformed, isLandingPage, onDictionaryStateCh
         {!backendError && !dictionariesLoading && (
           <Paper elevation={2} sx={{ p: 2 }}>
             <Box component="form" onSubmit={handleSubmit}>
-              {/* Search input - full width */}
-              <TextField
-                fullWidth
-                variant="outlined"
-                placeholder="Enter pattern (e.g., <listen> for anagrams)"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                InputProps={{
-                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
-                }}
-                inputProps={{
-                  autoCorrect: 'off',
-                  autoCapitalize: 'off',
-                  spellCheck: 'false',
-                  'data-form-type': 'other',
-                  'data-lpignore': 'true',
-                }}
-                sx={{
-                  mb: 1.5,
-                  '& .MuiOutlinedInput-root': {
-                    fontSize: '1rem',
-                    py: 0.4
-                  }
-                }}
-                autoFocus
-                autoComplete="off"
-              />
+              {/* Desktop: all in one row. Mobile: search on top, button below */}
+              <Box sx={{
+                display: 'flex',
+                gap: 1.5,
+                flexDirection: { xs: 'column', md: 'row' },
+                alignItems: { md: 'flex-start' }
+              }}>
+                {/* Search input - grows to fill space on desktop */}
+                <TextField
+                  variant="outlined"
+                  placeholder="Enter pattern (e.g., <listen> for anagrams)"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  InputProps={{
+                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
+                  }}
+                  inputProps={{
+                    autoCorrect: 'off',
+                    autoCapitalize: 'off',
+                    spellCheck: 'false',
+                    'data-form-type': 'other',
+                    'data-lpignore': 'true',
+                  }}
+                  sx={{
+                    flex: { md: 1 },
+                    width: { xs: '100%', md: 'auto' },
+                    '& .MuiOutlinedInput-root': {
+                      fontSize: '1rem',
+                      py: 0.4
+                    }
+                  }}
+                  autoFocus
+                  autoComplete="off"
+                />
 
-              {/* Dictionary and Search button row */}
-              <Box sx={{ display: 'flex', gap: 1.5, flexDirection: { xs: 'column', sm: 'row' } }}>
-                <FormControl variant="outlined" size="small" sx={{ minWidth: { xs: '100%', sm: 180 }, flex: { sm: '0 0 auto' } }}>
+                {/* Dictionary selector - shown on desktop only (mobile uses header) */}
+                <FormControl
+                  variant="outlined"
+                  size="small"
+                  sx={{
+                    minWidth: 180,
+                    display: { xs: 'none', md: 'flex' }
+                  }}
+                >
                   <InputLabel>Dictionary</InputLabel>
                   <Select
                     value={selectedDictionary}
@@ -388,11 +401,6 @@ function SearchInterface({ onSearchPerformed, isLandingPage, onDictionaryStateCh
                       </MenuItem>
                     ))}
                   </Select>
-                  {getSelectedDictionaryInfo() && (
-                    <FormHelperText>
-                      {getSelectedDictionaryInfo().description}
-                    </FormHelperText>
-                  )}
                 </FormControl>
 
                 <Button
@@ -401,16 +409,26 @@ function SearchInterface({ onSearchPerformed, isLandingPage, onDictionaryStateCh
                   size="medium"
                   disabled={!query.trim() || dictionariesLoading}
                   sx={{
-                    minWidth: { xs: '100%', sm: 120 },
+                    minWidth: { xs: '100%', md: 120 },
                     borderRadius: 2,
                     textTransform: 'none',
                     fontWeight: 500,
-                    py: 1
+                    py: 1,
+                    height: { md: '40px' }
                   }}
                 >
                   Search
                 </Button>
               </Box>
+
+              {/* Dictionary description - desktop only */}
+              {getSelectedDictionaryInfo() && (
+                <Box sx={{ display: { xs: 'none', md: 'block' }, mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {getSelectedDictionaryInfo().description}
+                  </Typography>
+                </Box>
+              )}
             </Box>
           </Paper>
         )}

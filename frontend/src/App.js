@@ -69,10 +69,15 @@ function App() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Dictionary state shared between Header and SearchInterface
+  // selectedDictionary is managed here; dictionaries/loading come from SearchInterface
   const [dictionaryState, setDictionaryState] = useState({
     dictionaries: [],
-    selectedDictionary: 'wikipedia',
     dictionariesLoading: true
+  });
+  const [selectedDictionary, setSelectedDictionary] = useState(() => {
+    // Initialize from URL or localStorage
+    const urlDict = new URLSearchParams(window.location.search).get('dict');
+    return urlDict || localStorage.getItem('nutrimatic-dictionary') || 'wikipedia';
   });
 
   // Listen for browser back/forward navigation
@@ -102,14 +107,15 @@ function App() {
     setQuickRefOpen(!quickRefOpen);
   };
 
-  // Called by SearchInterface to report its dictionary state
+  // Called by SearchInterface to report dictionaries list and loading state
   const handleDictionaryStateChange = (state) => {
     setDictionaryState(state);
   };
 
   // Called by Header when user changes dictionary on mobile
   const handleHeaderDictionaryChange = (newDictionary) => {
-    setDictionaryState(prev => ({ ...prev, selectedDictionary: newDictionary }));
+    setSelectedDictionary(newDictionary);
+    localStorage.setItem('nutrimatic-dictionary', newDictionary);
   };
 
   // Initial landing page layout
@@ -163,37 +169,32 @@ function App() {
               fontSize: '0.7rem',
             }}
           >
-            <Box sx={{ mb: 0.5 }}>
-              <em>Almost, but not quite, entirely unlike tea.</em>
-            </Box>
-            <Box>
-              Powered by{' '}
-              <a
-                href="https://github.com/egnor/nutrimatic"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  color: 'inherit',
-                  textDecoration: 'underline',
-                  textDecorationColor: 'rgba(0,0,0,0.3)'
-                }}
-              >
-                Nutrimatic
-              </a>
-              {' · '}
-              <a
-                href="https://github.com/bandrews/wordsdotninja"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  color: 'inherit',
-                  textDecoration: 'underline',
-                  textDecorationColor: 'rgba(0,0,0,0.3)'
-                }}
-              >
-                GitHub
-              </a>
-            </Box>
+            Powered by{' '}
+            <a
+              href="https://github.com/egnor/nutrimatic"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: 'inherit',
+                textDecoration: 'underline',
+                textDecorationColor: 'rgba(0,0,0,0.3)'
+              }}
+            >
+              Nutrimatic
+            </a>
+            {' · '}
+            <a
+              href="https://github.com/bandrews/wordsdotninja"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: 'inherit',
+                textDecoration: 'underline',
+                textDecorationColor: 'rgba(0,0,0,0.3)'
+              }}
+            >
+              GitHub
+            </a>
           </Box>
         </Box>
       </ThemeProvider>
@@ -208,7 +209,7 @@ function App() {
         <Header
           onQuickRefClick={handleQuickRefToggle}
           dictionaries={dictionaryState.dictionaries}
-          selectedDictionary={dictionaryState.selectedDictionary}
+          selectedDictionary={selectedDictionary}
           onDictionaryChange={handleHeaderDictionaryChange}
           dictionariesLoading={dictionaryState.dictionariesLoading}
         />
@@ -234,7 +235,7 @@ function App() {
               onSearchPerformed={handleSearchPerformed}
               isLandingPage={false}
               onDictionaryStateChange={handleDictionaryStateChange}
-              externalDictionary={dictionaryState.selectedDictionary}
+              externalDictionary={selectedDictionary}
             />
           </Box>
 

@@ -128,10 +128,10 @@ function QuickReference({ open, onClose, isMobile, isLandingPage }) {
       bgcolor: 'background.paper'
     }}>
       {/* Header */}
-      <Box sx={{ 
-        p: 1.2, 
-        borderBottom: 1, 
-        borderColor: 'divider', 
+      <Box sx={{
+        p: 1.2,
+        borderBottom: 1,
+        borderColor: 'divider',
         flexShrink: 0,
         bgcolor: 'grey.50'
       }}>
@@ -139,7 +139,7 @@ function QuickReference({ open, onClose, isMobile, isLandingPage }) {
           <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
             Quick Reference
           </Typography>
-          {isMobile && (
+          {isMobile && !isLandingPage && (
             <IconButton onClick={onClose} size="small">
               <CloseIcon />
             </IconButton>
