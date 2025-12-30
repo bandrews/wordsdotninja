@@ -5,6 +5,7 @@ namespace: wordsninja
 
 resources:
   - namespace.yaml
+  - middleware.yaml
   - api.yaml
   - frontend.yaml
   - ingress.yaml

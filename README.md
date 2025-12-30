@@ -35,6 +35,51 @@ wordsdotninja/
 └── docs/                # Documentation
 ```
 
+## Docker Hub Images
+
+Pre-built images are available on Docker Hub (linux/amd64):
+
+| Image | Description |
+|-------|-------------|
+| `andrewsbw/wordsninja-api:latest` | REST API with compiled binaries and indexes |
+| `andrewsbw/wordsninja-frontend:latest` | React web UI served by nginx |
+| `andrewsbw/wordsninja-discord-bot:latest` | Discord bot integration |
+
+## Use Nutrimatic CLI Instantly
+
+Run Nutrimatic pattern searches directly using Docker - no installation or build required:
+
+```bash
+# Find anagrams of "listen" (returns: silent, listen, enlist, tinsel...)
+docker run --rm andrewsbw/wordsninja-api:latest find-expr /data/wikipedia.index '<listen>' | head -10
+
+# Words starting with "puzz"
+docker run --rm andrewsbw/wordsninja-api:latest find-expr /data/wikipedia.index 'puzz*' | head -10
+
+# 5-letter words matching _a_e_ (water, games, paper...)
+docker run --rm andrewsbw/wordsninja-api:latest find-expr /data/wikipedia.index '_a_e_' | head -10
+
+# Use the smaller 12dicts index for common words only
+docker run --rm andrewsbw/wordsninja-api:latest find-expr /data/12dicts.index '<apple>' | head -10
+```
+
+Results are ordered by frequency in Wikipedia. Pipe through `head` to limit output.
+
+### Pattern Syntax Quick Reference
+
+| Pattern | Meaning |
+|---------|---------|
+| `A` | Literal letter A |
+| `_` | Any single letter |
+| `*` | Zero or more letters |
+| `[aeiou]` | Any vowel |
+| `[^aeiou]` | Any consonant |
+| `<word>` | Anagram of "word" |
+| `"phrase"` | Exact phrase match |
+| `A&B` | Pattern A and B overlap |
+
+See [Nutrimatic documentation](http://nutrimatic.org/usage.html) for full syntax.
+
 ## Quick Start with Docker
 
 ```bash
@@ -50,7 +95,7 @@ docker compose up --build
 
 The API image is self-contained with:
 - Compiled `find-expr` binary
-- Pre-downloaded Wikipedia and 12Dicts indexes
+- Pre-downloaded Wikipedia and 12Dicts indexes (~1.1GB)
 
 ## Development
 
@@ -72,24 +117,179 @@ cp discord-bot/env.example discord-bot/.env
 docker compose --profile discord up
 ```
 
+## Public API
+
+The Nutrimatic API is publicly available at **https://api.words.ninja**
+
+### Base URL
+
+```
+https://api.words.ninja
+```
+
+### Endpoints
+
+#### Health Check
+
+```http
+GET /health
+```
+
+Returns API status and available dictionaries.
+
+**Example:**
+```bash
+curl https://api.words.ninja/health
+```
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "find_expr_binary": "/usr/local/bin/find-expr",
+  "binary_exists": true,
+  "dictionaries": {
+    "wikipedia": true,
+    "12dicts": true
+  }
+}
+```
+
+#### List Dictionaries
+
+```http
+GET /dictionaries
+```
+
+Returns available dictionaries with metadata.
+
+**Example:**
+```bash
+curl https://api.words.ninja/dictionaries
+```
+
+**Response:**
+```json
+{
+  "dictionaries": [
+    {
+      "id": "wikipedia",
+      "name": "Wikipedia",
+      "description": "Large comprehensive dictionary from Wikipedia text",
+      "default": true,
+      "available": true,
+      "scale_mapping": {...}
+    },
+    {
+      "id": "12dicts",
+      "name": "12Dicts",
+      "description": "Curated word list with high-quality entries",
+      "default": false,
+      "available": true,
+      "scale_mapping": {...}
+    }
+  ]
+}
+```
+
+#### Search (Paginated)
+
+```http
+GET /search?q=<pattern>&dictionary=<dict>&limit=<n>&offset=<n>
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `q` | string | required | Search pattern |
+| `dictionary` | string | `wikipedia` | Dictionary: `wikipedia` or `12dicts` |
+| `limit` | int | 100 | Max results (1-1000) |
+| `offset` | int | 0 | Pagination offset |
+
+**Example:**
+```bash
+# Find anagrams of "listen"
+curl 'https://api.words.ninja/search?q=<listen>&limit=10'
+
+# 5-letter words matching _a_e_
+curl 'https://api.words.ninja/search?q=_a_e_&dictionary=12dicts&limit=20'
+```
+
+**Response:**
+```json
+{
+  "query": "<listen>",
+  "dictionary": "wikipedia",
+  "results": [
+    {"text": "silent", "score": 86937.0, "rank": 0},
+    {"text": "listen", "score": 36298.0, "rank": 1},
+    {"text": "enlist", "score": 7832.0, "rank": 2}
+  ],
+  "total_results": 156,
+  "computation_limit_reached": false,
+  "error": null
+}
+```
+
+#### Search (Streaming)
+
+```http
+GET /search/stream?q=<pattern>&dictionary=<dict>
+```
+
+Returns Server-Sent Events for real-time results. Useful for large result sets.
+
+**Example:**
+```bash
+curl -N 'https://api.words.ninja/search/stream?q=puzz*'
+```
+
+**Response (SSE):**
+```
+data: {'type': 'result', 'data': {'text': 'puzzle', 'score': 45678.0, 'rank': 0}}
+data: {'type': 'result', 'data': {'text': 'puzzles', 'score': 23456.0, 'rank': 1}}
+data: {'type': 'done'}
+```
+
+### Pattern Syntax
+
+| Pattern | Meaning | Example |
+|---------|---------|---------|
+| `A` | Literal letter | `cat` matches "cat" |
+| `_` | Any single letter | `c_t` → cat, cot, cut |
+| `*` | Zero or more letters | `cat*` → cat, cats, caterpillar |
+| `+` | One or more letters | `cat+` → cats, caterpillar |
+| `?` | Optional character | `cats?` → cat, cats |
+| `[abc]` | Any of these | `[aeiou]` → any vowel |
+| `[^abc]` | None of these | `[^aeiou]` → any consonant |
+| `[a-z]` | Character range | `[a-m]` → a through m |
+| `<word>` | Anagram | `<listen>` → silent, enlist |
+| `"phrase"` | Exact phrase | `"the cat"` |
+| `A & B` | Both match | `c*t & *a*` → cat, cart |
+| `A \| B` | Either matches | `cat\|dog` |
+| `{n}` | Exactly n times | `A{5}` → 5-letter words |
+| `{n,m}` | n to m times | `A{3,5}` → 3-5 letter words |
+| `C` | Consonant (incl. y) | `CVC` → cat, dog |
+| `V` | Vowel (a,e,i,o,u) | `cVt` → cat, cot, cut |
+
+### Rate Limits
+
+- 10 requests/second with burst of 20
+- Results ordered by Wikipedia frequency (higher = more common)
+- Computation timeout: 30 seconds
+
+### CORS
+
+The API supports CORS from any origin, so you can call it directly from browser JavaScript.
+
 ## Kubernetes Deployment (K3s)
-
-### Pre-built images
-
-Images are available on Docker Hub:
-- `andrewsbw/wordsninja-api:latest`
-- `andrewsbw/wordsninja-frontend:latest`
 
 ### Build and push images (optional)
 
 ```bash
-# Build images
-docker build -t andrewsbw/wordsninja-api:latest -f api/Dockerfile .
-docker build -t andrewsbw/wordsninja-frontend:latest frontend/
-
-# Push to registry
-docker push andrewsbw/wordsninja-api:latest
-docker push andrewsbw/wordsninja-frontend:latest
+# Build images (use buildx for cross-platform)
+docker buildx build --platform linux/amd64 -t andrewsbw/wordsninja-api:latest -f api/Dockerfile --push .
+docker buildx build --platform linux/amd64 -t andrewsbw/wordsninja-frontend:latest frontend/ --push
+docker buildx build --platform linux/amd64 -t andrewsbw/wordsninja-discord-bot:latest discord-bot/ --push
 ```
 
 ### Deploy to K3s
@@ -147,9 +347,29 @@ docker run -v ./data:/data wordsninja-nutrimatic \
 
 Words.ninja includes a Model Context Protocol (MCP) server for AI agents like Claude.
 
+### MCP Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/mcp` | GET | MCP manifest with tool definitions |
+| `/mcp` | POST | JSON-RPC endpoint for tool calls |
+
 ### Configure Claude Desktop
 
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "nutrimatic": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://api.words.ninja/mcp"]
+    }
+  }
+}
+```
+
+Or for local development:
 
 ```json
 {
@@ -161,6 +381,13 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
   }
 }
 ```
+
+### Available Tools
+
+**nutrimatic_search** - Search word patterns with parameters:
+- `pattern` (required): Search pattern (e.g., `<listen>`, `c*t`)
+- `dictionary`: `wikipedia` (default) or `12dicts`
+- `max_results`: 1-100 (default: 10)
 
 For complete documentation, see [docs/mcp-server.md](docs/mcp-server.md).
 
