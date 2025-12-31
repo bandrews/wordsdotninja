@@ -1,6 +1,8 @@
 # Index files (large, downloaded at build time)
-data/
+/data/
 *.index
+# But don't ignore frontend source data
+!frontend/src/data/
 
 # Compiled binaries
 bin/

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
@@ -9,8 +10,12 @@ import {
   Select,
   MenuItem,
   FormControl,
+  Tooltip,
 } from '@mui/material';
-import { MenuBook as QuickRefIcon } from '@mui/icons-material';
+import {
+  MenuBook as QuickRefIcon,
+  Help as GuideIcon,
+} from '@mui/icons-material';
 
 function Header({ onQuickRefClick, dictionaries, selectedDictionary, onDictionaryChange, dictionariesLoading }) {
   return (
@@ -75,14 +80,29 @@ function Header({ onQuickRefClick, dictionaries, selectedDictionary, onDictionar
           </FormControl>
         )}
 
-        <IconButton
-          color="inherit"
-          onClick={onQuickRefClick}
-          aria-label="Toggle quick reference"
-          size="small"
-        >
-          <QuickRefIcon />
-        </IconButton>
+        <Tooltip title="Pattern Guide">
+          <IconButton
+            component={RouterLink}
+            to="/guide"
+            color="inherit"
+            aria-label="Pattern guide"
+            size="small"
+            sx={{ mr: 0.5 }}
+          >
+            <GuideIcon />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title="Quick Reference">
+          <IconButton
+            color="inherit"
+            onClick={onQuickRefClick}
+            aria-label="Toggle quick reference"
+            size="small"
+          >
+            <QuickRefIcon />
+          </IconButton>
+        </Tooltip>
       </Toolbar>
     </AppBar>
   );

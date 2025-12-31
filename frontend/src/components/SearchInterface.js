@@ -373,13 +373,13 @@ function SearchInterface({ onSearchPerformed, isLandingPage, onDictionaryStateCh
                   autoComplete="off"
                 />
 
-                {/* Dictionary selector - shown on desktop only (mobile uses header) */}
+                {/* Dictionary selector - always shown on landing page */}
                 <FormControl
                   variant="outlined"
                   size="small"
                   sx={{
-                    minWidth: 180,
-                    display: { xs: 'none', md: 'flex' }
+                    minWidth: { xs: '100%', md: 180 },
+                    display: 'flex'
                   }}
                 >
                   <InputLabel>Dictionary</InputLabel>
@@ -421,9 +421,9 @@ function SearchInterface({ onSearchPerformed, isLandingPage, onDictionaryStateCh
                 </Button>
               </Box>
 
-              {/* Dictionary description - desktop only */}
+              {/* Dictionary description */}
               {getSelectedDictionaryInfo() && (
-                <Box sx={{ display: { xs: 'none', md: 'block' }, mt: 1 }}>
+                <Box sx={{ mt: 1 }}>
                   <Typography variant="caption" color="text.secondary">
                     {getSelectedDictionaryInfo().description}
                   </Typography>

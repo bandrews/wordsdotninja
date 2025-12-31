@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Drawer,
   Paper,
@@ -15,46 +16,21 @@ import {
   Collapse,
   Divider,
   Grid,
+  Button,
 } from '@mui/material';
 import {
   Close as CloseIcon,
   ContentCopy as CopyIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  MenuBook as GuideIcon,
 } from '@mui/icons-material';
-
-// Query Types - different ways to structure searches
-const QUERY_TYPES = [
-  { pattern: '<abc>', desc: 'Anagram', example: '<cat> → act, cat' },
-  { pattern: '"text"', desc: 'Exact phrase', example: '"the cat"' },
-  { pattern: 'A & B', desc: 'Both patterns', example: 'C.t & .a.' },
-  { pattern: 'A | B', desc: 'Either pattern', example: 'cat|dog' },
-  { pattern: '()', desc: 'Group patterns', example: '(cat|dog)s' },
-];
-
-// Character Classes - what each symbol matches
-const CHARACTER_CLASSES = [
-  { pattern: '.', desc: 'Any character', example: 'c.t → cat, cut, cot' },
-  { pattern: '_', desc: 'Letter or number', example: 'c_t → cat, c3t' },
-  { pattern: 'A', desc: 'Any letter', example: 'cAt → cat, cbt' },
-  { pattern: 'C', desc: 'Consonant (incl. y)', example: 'CaC → cat, bay' },
-  { pattern: 'V', desc: 'Vowel (a,e,i,o,u)', example: 'cVt → cat, cut' },
-  { pattern: '#', desc: 'Any digit', example: '###-####' },
-  { pattern: '[abc]', desc: 'Any of these', example: '[aeiou]' },
-  { pattern: '[^abc]', desc: 'None of these', example: '[^aeiou]' },
-  { pattern: '[a-z]', desc: 'Range', example: '[a-m]' },
-  { pattern: '-', desc: 'Optional space', example: 'cat-dog' },
-];
-
-// Repetition patterns
-const REPETITION_PATTERNS = [
-  { pattern: '*', desc: 'Zero or more', example: 'cat.* → cat, cats, caterpillar' },
-  { pattern: '+', desc: 'One or more', example: 'cat.+ → cats, caterpillar' },
-  { pattern: '?', desc: 'Optional', example: 'cats? → cat, cats' },
-  { pattern: '{3}', desc: 'Exactly 3', example: 'V{3} → ooo, aaa' },
-  { pattern: '{2,5}', desc: '2 to 5 times', example: 'C{2,5} → cc,ddd,fffff' },
-  { pattern: '{3,}', desc: '3 or more', example: 'C{3,} → bcd, bbccdd' },
-];
+import {
+  QUERY_TYPES,
+  CHARACTER_CLASSES,
+  REPETITION_PATTERNS,
+  PERFORMANCE_TIPS_QUICK,
+} from '../data/helpContent';
 
 function QuickReference({ open, onClose, isMobile, isLandingPage }) {
   const [hoveredPattern, setHoveredPattern] = useState(null);
@@ -104,10 +80,11 @@ function QuickReference({ open, onClose, isMobile, isLandingPage }) {
                 <TableCell sx={{ fontSize: '0.7rem' }}>
                   {item.desc}
                 </TableCell>
-                <TableCell sx={{ 
-                  fontSize: '0.65rem', 
+                <TableCell sx={{
+                  fontSize: '0.65rem',
                   color: 'text.secondary',
                   fontFamily: 'monospace',
+                  whiteSpace: 'pre-line',
                   display: { xs: 'none', sm: compact ? 'none' : 'table-cell' }
                 }}>
                   {item.example}
@@ -121,11 +98,11 @@ function QuickReference({ open, onClose, isMobile, isLandingPage }) {
   );
 
   const quickRefContent = (
-    <Box sx={{ 
-      height: '100%', 
-      display: 'flex', 
+    <Box sx={{
+      height: '100%',
+      display: 'flex',
       flexDirection: 'column',
-      bgcolor: 'background.paper'
+      bgcolor: '#f8fafc'  // Light blue-grey tint for better visibility
     }}>
       {/* Header */}
       <Box sx={{
@@ -133,19 +110,20 @@ function QuickReference({ open, onClose, isMobile, isLandingPage }) {
         borderBottom: 1,
         borderColor: 'divider',
         flexShrink: 0,
-        bgcolor: 'grey.50'
+        bgcolor: 'primary.main',
+        color: 'white',
       }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
             Quick Reference
           </Typography>
           {isMobile && !isLandingPage && (
-            <IconButton onClick={onClose} size="small">
+            <IconButton onClick={onClose} size="small" sx={{ color: 'white' }}>
               <CloseIcon />
             </IconButton>
           )}
         </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+        <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.9 }}>
           Pattern syntax for word searches
         </Typography>
       </Box>
@@ -157,6 +135,7 @@ function QuickReference({ open, onClose, isMobile, isLandingPage }) {
           <Grid container spacing={1.5}>
             <Grid item xs={12} md={4}>
               <PatternTable patterns={QUERY_TYPES} title="Query Types" />
+              <PatternTable patterns={PERFORMANCE_TIPS_QUICK} title="Performance Tips" />
             </Grid>
             <Grid item xs={12} md={4}>
               <PatternTable patterns={CHARACTER_CLASSES} title="Character Classes" />
@@ -169,24 +148,60 @@ function QuickReference({ open, onClose, isMobile, isLandingPage }) {
           <>
             {/* Single column for sidebar */}
             <PatternTable patterns={QUERY_TYPES} title="Query Types" compact />
+            <PatternTable patterns={PERFORMANCE_TIPS_QUICK} title="Performance Tips" compact />
             <PatternTable patterns={CHARACTER_CLASSES} title="Character Classes" compact />
             <PatternTable patterns={REPETITION_PATTERNS} title="Repetition" compact />
           </>
         )}
 
-        <Divider sx={{ my: 1 }} />
-
-        {/* Quick tips */}
-        <Box sx={{ mt: 0.8 }}>
-          <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.4, fontSize: '0.75rem' }}>
-            Tips:
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.65rem' }}>
-            • Start patterns are faster: "the*" vs "*ing"<br/>
-            • Use quotes for exact phrases: "the cat"<br/>
-            • Y is a consonant, not vowel<br/>
-            • Combine with &: "C*t & *a*"
-          </Typography>
+        {/* Big link to full guide */}
+        <Box
+          sx={{
+            mt: 2,
+            mb: 1,
+            p: 2,
+            border: '2px solid',
+            borderColor: '#00897b',
+            borderRadius: 2,
+            bgcolor: 'rgba(0, 137, 123, 0.05)',
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: 'center',
+            gap: 2,
+          }}
+        >
+          <Box sx={{ flex: 1, textAlign: { xs: 'center', sm: 'left' } }}>
+            <Typography
+              sx={{ fontSize: '0.95rem', fontWeight: 500, color: 'text.primary', mb: 0.5 }}
+            >
+              Learn advanced patterns, tips & practice challenges
+            </Typography>
+            <Typography
+              sx={{ fontSize: '0.8rem', color: 'text.secondary' }}
+            >
+              Combining queries, letterbanks, anagrams & more
+            </Typography>
+          </Box>
+          <Button
+            component={Link}
+            to="/guide"
+            variant="contained"
+            startIcon={<GuideIcon sx={{ fontSize: '1.3rem' }} />}
+            sx={{
+              fontSize: '1rem',
+              py: 1.5,
+              px: 3,
+              flexShrink: 0,
+              bgcolor: '#00897b',
+              '&:hover': {
+                bgcolor: '#00695c',
+              },
+              fontWeight: 600,
+              boxShadow: 2,
+            }}
+          >
+            Syntax Guide
+          </Button>
         </Box>
       </Box>
     </Box>
